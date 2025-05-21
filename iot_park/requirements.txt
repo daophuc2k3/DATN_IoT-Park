@@ -1,0 +1,19 @@
+
+dj-database-url==0.5.0
+Django==4.2.13
+gunicorn==20.1.0
+pycodestyle==2.7.0
+python-decouple==3.4
+pytz==2021.1
+Unipath==1.1
+whitenoise==5.3.0
+paho-mqtt
+djangorestframework
+django-import-export
+Pillow
+opencv-python 
+ultralytics
+# Channels (WebSocket)
+channels==4.2.0
+channels_redis==4.2.1
+daphne==4.1.2

@@ -1,0 +1,184 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Dashboard {% endblock %}
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+<main class="content">
+    {% include 'includes/navigation.html' %}
+    <div class="row">
+        <div class="col-12 col-lg-8">
+            <div class="row">
+                <!-- Camera Vào -->
+                <div class="col-6 mb-3">
+                    <div class="card border-light shadow-sm">
+                        <div class="card-header py-2">
+                            <h2 class="h6 mb-0">🎥 Cổng Vào</h2>
+                        </div>
+                        <div class="card-body py-2">
+                            {% if camera_entry %}
+                            <div class="text-center mb-2">
+                                <img src="{{ camera_entry.stream_url }}" class="img-fluid rounded border" style="max-height:250px;object-fit:cover;">
+                            </div>
+                            <div id="realtime-entry" class="text-center mb-2 text-muted fst-italic">⏳ Đang chờ dữ liệu cổng vào...</div>
+                            <div><strong>📷 Biển số vào:</strong> <span id="plate-entry">{{ plate_number_entry }}</span></div>
+                            {% else %}<p class="text-danger">⚠️ Không có camera cổng vào.</p>{% endif %}
+                        </div>
+                    </div>
+                </div>
+                <!-- Camera Ra -->
+                <div class="col-6 mb-3">
+                    <div class="card border-light shadow-sm">
+                        <div class="card-header py-2">
+                            <h2 class="h6 mb-0">🎥 Cổng Ra</h2>
+                        </div>
+                        <div class="card-body py-2">
+                            {% if camera_exit %}
+                            <div class="text-center mb-2">
+                                <img src="{{ camera_exit.stream_url }}" class="img-fluid rounded border" style="max-height:250px;object-fit:cover;">
+                            </div>
+                            <div id="realtime-exit" class="text-center mb-2 text-muted fst-italic">⏳ Đang chờ dữ liệu cổng ra...</div>
+                            <div><strong>📷 Biển số ra:</strong> <span id="plate-exit">{{ plate_number_exit }}</span></div>
+                            {% else %}<p class="text-danger">⚠️ Không có camera cổng ra.</p>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="card border-light shadow-sm">
+                <div class="card-body border-bottom">
+                    <div class="h6 font-weight-normal text-gray mb-2">🚗 Thông tin xe</div>
+                </div>
+                <div class="card-body p-2">
+                    <form id="vehicle-info-form">
+                        <div class="row">
+                            <div class="mb-2 col-6">
+                                <label class="form-label">📷 Biển số</label>
+                                <input type="text" class="form-control form-control-sm" id="input-plate-number" readonly>
+                            </div>
+                            <div class="mb-2 col-6">
+                                <label class="form-label">🔐 RFID</label>
+                                <input type="text" class="form-control form-control-sm" id="input-rfid-code" readonly>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="mb-2 col-6">
+                                <label class="form-label">🕓 Giờ vào</label>
+                                <input type="text" class="form-control form-control-sm" id="input-entry-time" readonly>
+                            </div>
+                            <div class="mb-2 col-6">
+                                <label class="form-label">🕔 Giờ ra</label>
+                                <input type="text" class="form-control form-control-sm" id="input-exit-time" readonly>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="mb-2 col-12">
+                                <label class="form-label">📄 Trạng thái</label>
+                                <input type="text" class="form-control form-control-sm" id="input-status" readonly style="display:none;">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <button class="btn btn-success w-100 mb-2" type="button" id="btnOpenGateIn">🚧 Mở cổng vào</button>
+                                <button class="btn btn-secondary w-100" type="button" id="btnManualModeIn">⚙️ Thủ công vào</button>
+                            </div>
+                            <div class="col-md-6">
+                                <button class="btn btn-danger w-100 mb-2" type="button" id="btnOpenGateOut">🚧 Mở cổng ra</button>
+                                <button class="btn btn-secondary w-100" type="button" id="btnManualModeOut">⚙️ Thủ công ra</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock content %}
+
+{% block javascripts %}
+<script>
+    const ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
+    const socket = new WebSocket(`${ws_scheme}://${window.location.host}/ws/access-events/`);
+
+    socket.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            if (data.type === "access_event") {
+                const { position, license_plate, image_url, status, rfid, check_in, check_out } = data;
+                const html = `<img src="${image_url}" class="img-fluid rounded border mb-2" style="max-height:200px;object-fit:cover;"><div><strong>📷 Biển số:</strong> ${license_plate || '—'}</div>`;
+
+                if (position === "entry") {
+                    document.getElementById("realtime-entry").innerHTML = html;
+                    document.getElementById("plate-entry").innerText = license_plate || "—";
+                } else if (position === "exit") {
+                    document.getElementById("realtime-exit").innerHTML = html;
+                    document.getElementById("plate-exit").innerText = license_plate || "—";
+                }
+
+                document.getElementById("input-plate-number").value = license_plate || "";
+                document.getElementById("input-rfid-code").value = rfid || "";
+                document.getElementById("input-entry-time").value = check_in ? new Date(check_in).toLocaleString() : "";
+                document.getElementById("input-exit-time").value = check_out ? new Date(check_out).toLocaleString() : "";
+
+                const statusField = document.getElementById("input-status");
+                switch (status) {
+                    case "chua_co_thong_tin":
+                        statusField.value = "Chưa có thông tin xe đăng ký";
+                        statusField.className = "form-control form-control-sm text-danger";
+                        break;
+                    case "xe_da_trong_bai":
+                        statusField.value = "Xe đã vào nhưng chưa ra";
+                        statusField.className = "form-control form-control-sm text-warning";
+                        break;
+                    case "checkin_thanh_cong":
+                        statusField.value = "Xe vào thành công";
+                        statusField.className = "form-control form-control-sm text-success";
+                        break;
+                    case "checkin_khach_thanh_cong":
+                        statusField.value = "Khách vào thành công";
+                        statusField.className = "form-control form-control-sm text-success";
+                        break;
+                    case "checkout_thanh_cong":
+                        statusField.value = "Xe ra thành công";
+                        statusField.className = "form-control form-control-sm text-success";
+                        break;
+                    case "so_du_khong_du":
+                        statusField.value = "Không đủ số dư để thanh toán";
+                        statusField.className = "form-control form-control-sm text-danger";
+                        break;
+                    case "cho_thanh_toan":
+                        statusField.value = "Chờ thanh toán bằng QR";
+                        statusField.className = "form-control form-control-sm text-warning";
+                        break;
+                    case "rfid_dang_duoc_su_dung":
+                        statusField.value = "RFID đang được sử dụng";
+                        statusField.className = "form-control form-control-sm text-warning";
+                        break;
+                    case "bien_so_da_duoc_dang_ky":
+                        statusField.value = "Biển số đã được đăng ký";
+                        statusField.className = "form-control form-control-sm text-danger";
+                        break;
+                    case "khong_tim_thay_log_checkin":
+                        statusField.value = "Không tìm thấy lượt vào";
+                        statusField.className = "form-control form-control-sm text-danger";
+                        break;
+                    case "xe_chua_vao":
+                        statusField.value = "Xe chưa từng vào bãi";
+                        statusField.className = "form-control form-control-sm text-danger";
+                        break;
+                    default:
+                        statusField.value = "";
+                        statusField.className = "form-control form-control-sm";
+                        statusField.style.display = "none";
+                        return;
+                }
+                statusField.style.display = "block";
+            }
+        } catch (err) {
+            console.warn("\u26a0\ufe0f Lỗi khi parse JSON:", event.data);
+        }
+    };
+</script>
+{% endblock javascripts %}

@@ -1,0 +1,87 @@
+{% extends "layouts/base.html" %}
+{% load humanize %}
+
+{% block title %}Lịch sử ra vào{% endblock %}
+
+{% block content %}
+<main class="content">
+    {% include 'includes/navigation.html' %}
+
+    <div class="py-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb breadcrumb-dark breadcrumb-transparent">
+                <li class="breadcrumb-item"><a href="#"><span class="fas fa-home"></span></a></li>
+                <li class="breadcrumb-item active" aria-current="page">Lịch sử ra vào</li>
+            </ol>
+        </nav>
+
+        <div class="d-flex justify-content-between w-100 flex-wrap">
+            <div class="mb-3 mb-lg-0">
+                <h1 class="h4">Lịch sử ra vào bãi</h1>
+                <p class="mb-0">Danh sách các lượt xe vào và ra, hiển thị cho người dùng hoặc quản trị.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-light shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-centered table-nowrap mb-0 rounded">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>#</th>
+                            {% if is_admin %}<th>Người dùng</th>{% endif %}
+                            <th>Biển số</th>
+                            <th>Mã RFID</th>
+                            <th>Vào lúc</th>
+                            <th>Ra lúc</th>
+                            <th>Thời gian</th>
+                            <th>Phí</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for h in histories %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            {% if is_admin %}
+                            <td>
+                                {% if h.user %}
+                                    {{ h.user.username }}
+                                {% else %}
+                                    Khách
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                            <td>{{ h.get_license_plate_display }}</td>
+                            <td>{{ h.rfid_code|default:"—" }}</td>
+                            <td>{{ h.check_in|date:"H:i d/m/Y" }}</td>
+                            <td>
+                                {% if h.check_out %}
+                                    {{ h.check_out|date:"H:i d/m/Y" }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if h.duration_minutes %}
+                                    {{ h.duration_minutes }} phút
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>{{ h.fee|default:0|intcomma }} ₫</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center">Không có dữ liệu lịch sử.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% include 'includes/footer.html' %}
+</main>
+{% endblock %}

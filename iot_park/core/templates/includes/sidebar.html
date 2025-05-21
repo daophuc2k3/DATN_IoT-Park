@@ -1,0 +1,77 @@
+<nav id="sidebarMenu" class="sidebar d-md-block bg-primary text-white collapse px-4">
+    <div class="sidebar-sticky pt-3 mx-auto">
+      <!-- Thông tin người dùng -->
+      <div class="user-card d-flex d-md-none align-items-center justify-content-between justify-content-md-center pb-4">
+        <div class="d-flex align-items-center">
+          <div class="user-avatar lg-avatar mr-4">
+            <img src="/static/assets/img/team/profile-picture-3.jpg" class="card-img-top rounded-circle border-white" alt="User Avatar">
+          </div>
+          <div class="d-block">
+            <h2 class="h6">{{ request.user.username }}</h2>
+            <a href="{% url 'logout' %}" class="btn btn-secondary text-dark btn-xs">
+              <span class="mr-2"><span class="fas fa-sign-out-alt"></span></span>Thoát
+            </a>
+          </div>
+        </div>
+        <div class="collapse-close d-md-none">
+          <a href="#sidebarMenu" class="fas fa-times" data-toggle="collapse"
+             data-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="true"
+             aria-label="Toggle navigation"></a>
+        </div>
+      </div>
+  
+      <ul class="nav flex-column">
+        {% if request.user.is_staff %}
+          <!-- Menu cho ADMIN -->
+          <li class="nav-item {% if segment == 'home' %}active{% endif %}">
+            <a href="{% url 'home' %}" class="nav-link">
+              <span class="sidebar-icon"><span class="fas fa-chart-pie"></span></span>
+              <span>Trang quản trị</span>
+            </a>
+          </li>
+  
+          <li class="nav-item {% if segment == 'access_history' %}active{% endif %}">
+            <a href="{% url 'access_history' %}" class="nav-link">
+              <span class="sidebar-icon"><span class="fas fa-history"></span></span>
+              <span>Lịch sử ra vào</span>
+            </a>
+          </li>
+  
+          <li class="nav-item {% if segment == 'user_management' %}active{% endif %}">
+            <a href="{% url 'user_management' %}" class="nav-link">
+              <span class="sidebar-icon"><span class="fas fa-users-cog"></span></span>
+              <span>Quản lý người dùng</span>
+            </a>
+          </li>
+  
+        {% else %}
+          <!-- Menu cho USER -->
+          <li class="nav-item {% if segment == 'profile' %}active{% endif %}">
+            <a href="{% url 'profile_update' %}" class="nav-link">
+              <span class="sidebar-icon"><span class="fas fa-user"></span></span>
+              <span>Hồ sơ cá nhân</span>
+            </a>
+          </li>
+  
+          <li class="nav-item {% if segment == 'access_history' %}active{% endif %}">
+            <a href="{% url 'access_history' %}" class="nav-link">
+              <span class="sidebar-icon"><span class="fas fa-history"></span></span>
+              <span>Lịch sử ra vào</span>
+            </a>
+          </li>
+        {% endif %}
+  
+        <!-- Đường kẻ ngăn cách -->
+        <li role="separator" class="dropdown-divider mt-4 mb-3 border-black"></li>
+  
+        <!-- Logout -->
+        <li class="nav-item">
+          <a href="{% url 'logout' %}" class="nav-link">
+            <span class="sidebar-icon"><span class="fas fa-sign-out-alt text-danger"></span></span>
+            <span>Đăng xuất</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+  
