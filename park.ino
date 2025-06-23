@@ -143,7 +143,17 @@ void loop() {
       for (int i = 0; i < 6; i++) {
         code += slotState[i] ? "1" : "0";
       }
+      servo2.write(0);
       Serial.println(code);
+
+    } else if (command == "open_in_manual") {
+      servo1.write(0);
+    } else if (command == "close_in_manual") {
+      servo1.write(90);
+    } else if (command == "open_out_manual") {
+      servo2.write(90);
+    } else if (command == "close_out_manual") {
+      servo2.write(0);
     }
   }
 

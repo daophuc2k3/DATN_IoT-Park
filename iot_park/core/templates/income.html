@@ -1,0 +1,143 @@
+{% extends "layouts/base.html" %}
+{% load humanize %}
+
+{% block title %}Lịch sử ra vào{% endblock %}
+
+{% block content %}
+<main class="content">
+    {% include 'includes/navigation.html' %}
+
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-0">
+        <div class="d-block mb-0 mb-md-0">
+            <h2 class="h4">Doanh thu</h2>
+        </div>
+    </div>
+
+    <form method="get" class="d-block w-100 py-4" style="gap:10px">
+        <div class="d-flex w-100 justify-content-start flex-wrap flex-md-nowrap align-items-center pb-3" style="gap:10px">
+            Loại khách
+            <select class="btn-sm" name="type">
+                {% if request.GET.type == "0" or request.GET.type == None %}
+                    <option value="0" selected>Tất cả</option>x
+                    <option value="1">Khách vãng lai</option>
+                    <option value="2">Khách có tài khoản</option>
+                {% endif %}
+                {% if request.GET.type == "1" %}
+                    <option value="0">Tất cả</option>x
+                    <option value="1" selected>Khách vãng lai</option>
+                    <option value="2">Khách có tài khoản</option>
+                {% endif %}
+                {% if request.GET.type == "2" %}
+                    <option value="0">Tất cả</option>x
+                    <option value="1">Khách vãng lai</option>
+                    <option value="2" selected>Khách có tài khoản</option>
+                {% endif %}
+            </select>
+            Hiển thị theo
+            <select class="btn-sm" name="timestamp">
+                {% if request.GET.timestamp == "0" or request.GET.timestamp == None %}
+                    <option value="0" selected>Tất cả</option>
+                    <option value="1" >Thời gian</option>x
+                    <option value="2">Ngày</option>
+                    <option value="3">Tháng</option>
+                    <option value="4">Năm</option>
+                {% endif %}
+                {% if request.GET.timestamp == "1" %}
+                    <option value="0">Tất cả</option>
+                    <option value="1" selected>Thời gian</option>x
+                    <option value="2">Ngày</option>
+                    <option value="3">Tháng</option>
+                    <option value="4">Năm</option>
+                {% endif %}
+                {% if request.GET.timestamp == "2" %}
+                    <option value="0">Tất cả</option>
+                    <option value="1">Thời gian</option>
+                    <option value="2" selected>Ngày</option>
+                    <option value="3">Tháng</option>
+                    <option value="4">Năm</option>
+                {% endif %}
+                {% if request.GET.timestamp == "3" %}
+                    <option value="0">Tất cả</option>
+                    <option value="1">Thời gian</option>
+                    <option value="2">Ngày</option>
+                    <option value="3" selected>Tháng</option>
+                    <option value="4">Năm</option>
+                {% endif %}
+                {% if request.GET.timestamp == "4" %}
+                    <option value="0">Tất cả</option>
+                    <option value="1">Thời gian</option>
+                    <option value="2">Ngày</option>
+                    <option value="3">Tháng</option>
+                    <option value="4" selected>Năm</option>
+                {% endif %}
+            </select>
+            
+        </div>
+        {% if request.GET.timestamp == "1" %}
+            <div class="d-flex w-100 justify-content-start flex-wrap flex-md-nowrap align-items-center pb-3" style="gap:10px">
+                Từ
+                <input type="datetime-local" class="btn-sm" required name="from" value="{{ request.GET.from }}">
+                đến
+                <input type="datetime-local" class="btn-sm" required name="to" value="{{ request.GET.to }}">
+            </div>
+            {% endif %}
+        <div class="d-flex w-100 justify-content-start flex-wrap flex-md-nowrap align-items-center pb-3" style="gap:10px">
+            <button type="submit" class="btn btn-sm btn-outline-primary">Lọc</button>
+            <button type="button" onclick="window.location.href='/doanh-thu/'" class="btn btn-sm btn-outline-primary">Hủy</button>
+        </div>
+    </form>
+
+    <div class="card card-body border-light shadow-sm table-wrapper table-responsive pt-0 w-100">
+        <div class="w-100"><canvas id="acquisitions"></canvas></div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            console.log(
+            {% for h in histories %}
+                    '{{ h.time }}'{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+            )
+            const labels = [
+                {% for h in histories %}
+                    '{{ h.time }}'{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            ];
+            const data = [
+                {% for h in histories %}
+                    {{ h.total }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            ];
+
+            const ctx = document.getElementById('acquisitions').getContext('2d');
+
+            const myLineChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '',
+                        data: data,
+                        fill: true,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    {% include 'includes/footer.html' %}
+</main>
+{% endblock content %}

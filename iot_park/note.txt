@@ -1,0 +1,12 @@
+======= Lệnh chạy server =======
+python manage.py mqtt_call_cmd
+python manage.py runserver 0.0.0.0:8000
+================================
+
+======= Xem DATABASE =======
+1. Mở thư mục iot_park/iot_park (thư mục iot_park con ở bên trong có file db.sqlite3)
+2. chạy lệnh sqlite3 db.sqlite3 - nó sẽ hiển thị sqlite>
+3. chạy lệnh ".tables" để xem toàn bộ bảng`
+4. chọn xem 1 bảng "Select * from tên bảng;" hoặc "Select cột from tên bảng Where điều kiện;"
+5. còn lại thao tác lệnh như SQL bình thường
+============================

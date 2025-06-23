@@ -55,7 +55,7 @@ def process_mqtt_queue(client):
             topic = msg.topic
             payload_raw = msg.payload.decode("utf-8")
             print(topic)
-
+            print("START SEOPAY")
             if topic == "IOT/seopay/transaction":
                 try:
                     data = json.loads(payload_raw)

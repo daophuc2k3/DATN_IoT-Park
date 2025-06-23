@@ -1,0 +1,1 @@
+default_app_config = 'tcp_server.apps.TcpServerConfig'

@@ -25,7 +25,7 @@ from access.models import AccessHistory
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from camera.models import Camera
-from tcp_server.tcp_server import send_open_gate_command
+from tcp_server.tcp_server import tcp_server
 from .plate_utils import process_frame
 from ultralytics import YOLO
 import cv2, json, traceback
@@ -37,6 +37,12 @@ from urllib.parse import quote_plus
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.db.models.functions import TruncYear, TruncDay, TruncMonth, TruncHour, TruncTime
+
+from datetime import datetime
+from django.db.models import Q, Sum
+import calendar
+from django.contrib import messages
 
 def broadcast_access_event(payload):
     channel_layer = get_channel_layer()
@@ -76,16 +82,81 @@ def home(request):
     template = loader.get_template('home.html')
     return HttpResponse(template.render(context, request))
 
+# class HomeView(LoginRequiredMixin, ListView):
+#     model = AccessHistory
+#     template_name = 'home.html'
+#     context_object_name = 'home'
+#     paginate_by  = 5
+#     login_url = '/ho-so/'
+
+#     def get_queryset(self):
+#         if 'q' in self.request.GET:
+#             return self.get_query_search()
+#         if self.request.user.is_staff:
+#             return AccessHistory.objects.select_related('user').order_by('-check_in')
+#         else:
+#             return AccessHistory.objects.filter(user=self.request.user).order_by('-check_in')
+        
+#     def get_query_search(self):
+#         return 
+
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         camera_entry = Camera.objects.filter(camera_type='entry', is_active=True).first()
+#         camera_exit = Camera.objects.filter(camera_type='exit', is_active=True).first()
+#         histories = AccessHistory.objects.select_related('user').order_by('-check_in')[:5]
+#         context = {
+#             'segment': 'home',
+#             'camera_entry': camera_entry,
+#             'camera_exit': camera_exit,
+#             'histories': histories,
+#         }
+#         return context
 
 @login_required
 def profile_update(request):
     profile = request.user.profile
-
+    user = request.user
+    msg = None
+    typ = 0
     if request.method == 'POST':
         form = ProfileUpdateForm(request.POST, instance=profile)
-        if form.is_valid():
-            form.save()
-            return redirect('profile_update')
+        try:
+            isvalid = form.is_valid()
+            phone_data = request.POST.get("phone")
+            plat_data = request.POST.get('license_plate')
+            
+            if plat_data == None or plat_data == "":
+                msg = "Biển số không được bỏ trống"
+                typ = 1
+            elif phone_data == None or phone_data == "":
+                msg = "Số điện thoại không được bỏ trống!"
+                typ = 2
+            else:
+
+                if isvalid:
+                    form.save()
+                    messages.success(request, "Lưu thành công!")
+                    return redirect('profile_update')
+                else:
+                    license_plate = form.cleaned_data.get('license_plate')
+                    phone = form.cleaned_data.get('phone')
+
+                    license_exists = Profile.objects.filter(license_plate=license_plate).exists()
+                    phone_exists = Profile.objects.filter(phone=phone).exists()
+                    
+                    if not phone_exists:
+                        msg = "Số diện thoại đã tồn tại"
+                        typ = 2
+                    elif not license_exists:
+                        msg = "Biển số đã tồn tại!"
+                        typ = 1
+                    else :
+                        msg = "Lỗi!"
+            
+        except Exception as e:
+            print(e)
+            print("EROR INVALID")
     else:
         form = ProfileUpdateForm(instance=profile)
 
@@ -96,20 +167,82 @@ def profile_update(request):
         'form': form,
         'profile': profile,
         'topups': topups,  # ✅ Truyền vào template
+        'msg': msg,
+        'typ': typ
     })
 
 class AccessHistoryListView(LoginRequiredMixin, ListView):
     model = AccessHistory
     template_name = 'history.html'
     context_object_name = 'histories'
-    paginate_by = 5
+    paginate_by  = 5
     login_url = '/login/'
 
     def get_queryset(self):
+        if 'q' in self.request.GET:
+            return self.get_query_search()
         if self.request.user.is_staff:
             return AccessHistory.objects.select_related('user').order_by('-check_in')
         else:
             return AccessHistory.objects.filter(user=self.request.user).order_by('-check_in')
+        
+    def get_query_search(self):
+        query = self.request.GET.get('q', '').strip()
+        fr_raw = self.request.GET.get('from')
+        to_raw = self.request.GET.get('to')
+        type = self.request.GET.get('type')
+        timestamp = self.request.GET.get('timestamp')
+        is_admin = self.request.user.is_staff
+                
+        if is_admin:
+            qs = AccessHistory.objects.select_related('user')
+        else:
+            qs = AccessHistory.objects.filter(user=self.request.user)
+
+        if type == "1":
+            qs = qs.filter(user__isnull=True)
+        elif type == "2":
+            qs = qs.filter(user__isnull=False)
+
+        try:
+            if fr_raw and to_raw:
+                fr = datetime.fromisoformat(fr_raw.strip())
+                to = datetime.fromisoformat(to_raw.strip())
+                if timestamp == "4":
+                    fr = fr.strftime('%Y-%m-%d %H:%M:%S')
+                    to = to.strftime('%Y-%m-%d %H:%M:%S')
+                    qs = qs.filter(check_in__gte=fr, check_out__lte=to)
+                elif timestamp == "1":
+                    fr = fr.strftime('%Y-%m-%d 00:00:00')
+                    to = to.strftime('%Y-%m-%d 23:59:59')
+                    qs = qs.filter(check_in__gte=fr, check_out__lte=to)
+                elif timestamp == "2":
+                    last_day = calendar.monthrange(fr.year, fr.month)[1]
+                    fr = fr.strftime('%Y-%m-01') + "-" + '00:00:00'
+                    to = to.strftime('%Y-%m') + "-" + str(last_day) + " " + '23:59:59'
+                    qs = qs.filter(check_in__gte=fr, check_out__lte=to)
+                elif timestamp == "3":
+                    fr = fr.strftime('%Y-01-01 %H:%M:00')
+                    to = to.strftime('%Y-12-31 %H:%M:59')
+                    qs = qs.filter(check_in__gte=fr, check_out__lte=to)
+                
+                print(str(fr) + " - " + str(to))
+                                
+                qs = qs.filter(
+                    Q(user__username__icontains=query) | 
+                    Q(license_plate__icontains=query)
+                )
+            else :
+                qs = qs.filter(
+                    Q(user__username__icontains=query) | 
+                    Q(license_plate__icontains=query)
+                )
+                
+            qs = qs.order_by('-check_in')
+        except Exception as e:
+            print("err")
+            
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -117,13 +250,166 @@ class AccessHistoryListView(LoginRequiredMixin, ListView):
         context['segment'] = 'access_history'
         return context
     
-@user_passes_test(lambda u: u.is_staff, login_url="/ho-so/")
-def user_management(request):
-    profiles = Profile.objects.select_related('user').all()
-    return render(request, 'user_management.html', {
-        'profiles': profiles,
-        'segment': 'user_management',
-    })
+class AccessIncome(LoginRequiredMixin, ListView):
+    model = AccessHistory
+    template_name = 'income.html'
+    context_object_name = 'histories'
+    login_url = '/login/'
+
+    def get_queryset(self):
+        if 'timestamp' in self.request.GET:
+            return self.get_query_search()
+        if self.request.user.is_staff:
+            qs = AccessHistory.objects.select_related('user').order_by('-check_in').annotate(time=TruncTime('check_out')).values('time').annotate(total=Sum('fee')).order_by('time')
+            formatted_qs = []
+            print(qs)
+            for item in qs:
+                time = item['time']
+                if time != None:
+                    time_str = time.strftime("%d/%m/%Y %H:%M")
+                    formatted_qs.append({
+                        'time': time_str,
+                        'total': item['total']
+                    })
+                
+            return formatted_qs
+        else:
+            qs = AccessHistory.objects.filter(user=self.request.user).order_by('-check_in').annotate(time=TruncTime('check_out')).values('time').annotate(total=Sum('fee')).order_by('time')
+            formatted_qs = []
+            print(qs)
+            for item in qs:
+                time = item['time']
+                if time != None:
+                    time_str = time.strftime("%d/%m/%Y %H:%M")
+                    formatted_qs.append({
+                        'time': time_str,
+                        'total': item['total']
+                    })
+                
+            return formatted_qs
+        
+    def get_query_search(self):
+        fr_raw = self.request.GET.get('from')
+        to_raw = self.request.GET.get('to')
+        type_ = self.request.GET.get('type')
+        timestamp = self.request.GET.get('timestamp')
+        is_admin = self.request.user.is_staff
+
+        if is_admin:
+            qs = AccessHistory.objects.select_related('user')
+        else:
+            qs = AccessHistory.objects.filter(user=self.request.user)
+
+        if type_ == "1":
+            qs = qs.filter(user__isnull=True)
+        elif type_ == "2":
+            qs = qs.filter(user__isnull=False)
+
+        try:
+            
+            if timestamp == "0":
+                qs = qs.order_by('-check_in').annotate(time=TruncTime('check_out')).values('time').annotate(total=Sum('fee')).order_by('time')
+                formatted_qs = []
+                for item in qs:
+                    time = item['time']
+                    time_str = time.strftime("%d/%m/%Y %H:%M")
+                    formatted_qs.append({
+                        'time': time_str,
+                        'total': item['total']
+                    })
+                qs = formatted_qs
+
+            elif timestamp == "1":
+                if fr_raw and to_raw:
+                    fr = datetime.fromisoformat(fr_raw.strip())
+                    to = datetime.fromisoformat(to_raw.strip())
+                    qs = qs.filter(check_in__gte=fr, check_out__lte=to).annotate(time=TruncDay('check_out')).values('time').annotate(total=Sum('fee')).order_by('time')
+                    
+                    formatted_qs = []
+                    for item in qs:
+                        time = item['time']
+                        time_str = time.strftime("%d/%m/%Y %H:%M")
+                        formatted_qs.append({
+                            'time': time_str,
+                            'total': item['total']
+                        })
+                    qs = formatted_qs
+
+            elif timestamp == "2":
+                qs = qs.annotate(time=TruncDay('check_out')).values('time').annotate(total=Sum('fee')).order_by('time')
+                formatted_qs = []
+                for item in qs:
+                    time = item['time']
+                    time_str = time.strftime("%d/%m/%Y")
+                    formatted_qs.append({
+                        'time': time_str,
+                        'total': item['total']
+                    })
+                
+                qs = formatted_qs
+
+            elif timestamp == "3":
+                qs = qs.annotate(time=TruncMonth('check_out')).values('time').annotate(total=Sum('fee')).order_by('time')
+                formatted_qs = []
+                for item in qs:
+                    time = item['time']
+                    time_str = time.strftime("%m/%Y")
+                    formatted_qs.append({
+                        'time': time_str,
+                        'total': item['total']
+                    })
+                    
+                qs = formatted_qs
+
+            elif timestamp == "4":
+                qs = qs.annotate(time=TruncYear('check_out')).values('time').annotate(total=Sum('fee')).order_by('time')
+                formatted_qs = []
+                for item in qs:
+                    time = item['time']
+                    time_str = time.strftime("%Y")
+                    
+                    formatted_qs.append({
+                        'time': time_str,
+                        'total': item['total']
+                    })
+                    
+                qs = formatted_qs
+
+        except Exception as e:
+            print(f"Error in get_query_search: {e}")
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_admin'] = self.request.user.is_staff
+        context['segment'] = 'income_management'
+        return context
+    
+# @user_passes_test(lambda u: u.is_staff, login_url="/ho-so/")
+# def user_management(request):
+#     profiles = 
+#     return render(request, 'user_management.html', {
+#         'profiles': profiles,
+#         'segment': 'user_management', 
+#     })
+    
+class UserManagement(LoginRequiredMixin, ListView):
+    model = Profile
+    template_name = 'user_management.html'
+    context_object_name = 'profiles'
+    paginate_by  = 5
+    login_url = '/login/'
+    
+    def get_queryset(self):
+        qs = Profile.objects.select_related('user').all()
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_admin'] = self.request.user.is_staff
+        context['segment'] = 'user_management'
+        return context
 
 
 @csrf_exempt
@@ -342,3 +628,15 @@ def gate_event_api(request):
     except Exception as e:
         traceback.print_exc()
         return JsonResponse({"trang_thai": "that_bai", "thong_diep": str(e)}, status=500)
+
+
+@csrf_exempt
+def gate_action_api(request):
+    if request.method != "POST":
+        return JsonResponse({"trang_thai": "that_bai", "thong_diep": "chi_ho_tro_post"}, status=405)
+    
+    print(request.body)
+    data = json.loads(request.body)
+    type = int(data.get("type"))
+    tcp_server.send_gate_command(type)
+    return JsonResponse({"trang_thai": "thanh_cong", "thong_diep": "truy_cap_thanh_cong"}, status=200)

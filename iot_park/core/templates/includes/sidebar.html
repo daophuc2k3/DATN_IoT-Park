@@ -43,6 +43,13 @@
               <span>Quản lý người dùng</span>
             </a>
           </li>
+
+          <li class="nav-item {% if segment == 'income_management' %}active{% endif %}">
+            <a href="{% url 'income_management' %}" class="nav-link">
+              <span class="sidebar-icon"><span class="fas fa-money-bill-wave"></span></span>
+              <span>Doanh thu</span>
+            </a>
+          </li>
   
         {% else %}
           <!-- Menu cho USER -->

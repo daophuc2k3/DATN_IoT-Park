@@ -26,7 +26,9 @@
             <!-- Cột phải: Form cập nhật + bảng lịch sử -->
             <div class="col-xl-8">
                 <div class="card card-body bg-white border-light shadow-sm mb-4">
-                    <h2 class="h5 mb-4">Thông tin cá nhân</h2>
+                    <h2 class="h5 ">Thông tin cá nhân</h2>
+                    <div style="color:green ;" class="mb-4">
+                    </div>
                     <form method="post" enctype="multipart/form-data">
                         {% csrf_token %}
                         <div class="row">
@@ -37,6 +39,11 @@
                             <div class="col-md-6 mb-3">
                                 <label for="id_phone">Số điện thoại</label>
                                 {{ form.phone }}
+                                <div style="color:red">
+                                    {% if typ == 2 %}
+                                       {{msg}}
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
 
@@ -44,6 +51,11 @@
                             <div class="col-md-6 mb-3">
                                 <label for="id_license_plate">Biển số xe</label>
                                 {{ form.license_plate }}
+                                <div style="color:red">
+                                    {% if typ == 1 %}
+                                       {{msg}}
+                                    {% endif %}
+                                </div>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label>Số dư tài khoản (VNĐ)</label>
@@ -157,6 +169,7 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
+
     function getCookie(name) {
         const cookies = document.cookie ? document.cookie.split(';') : [];
         for (let cookie of cookies) {
@@ -299,6 +312,7 @@
         $('#topupModal').on('hidden.bs.modal', function () {
             resetTopupModal();
         });
+
     });
 </script>
 {% endblock javascripts %}

@@ -73,20 +73,20 @@
                                 <input type="text" class="form-control form-control-sm" id="input-exit-time" readonly>
                             </div>
                         </div>
-                        <div class="row">
+                         <div class="row">
                             <div class="mb-2 col-12">
                                 <label class="form-label">📄 Trạng thái</label>
-                                <input type="text" class="form-control form-control-sm" id="input-status" readonly style="display:none;">
+                                <input type="text" class="form-control form-control-sm" id="input-status" readonly>
                             </div>
                         </div>
                         <div class="row mt-3">
                             <div class="col-md-6">
                                 <button class="btn btn-success w-100 mb-2" type="button" id="btnOpenGateIn">🚧 Mở cổng vào</button>
-                                <button class="btn btn-secondary w-100" type="button" id="btnManualModeIn">⚙️ Thủ công vào</button>
+                                <button class="btn btn-secondary w-100" type="button"  id="btnManualModeIn">⚙️ Đóng công vào</button>
                             </div>
                             <div class="col-md-6">
                                 <button class="btn btn-danger w-100 mb-2" type="button" id="btnOpenGateOut">🚧 Mở cổng ra</button>
-                                <button class="btn btn-secondary w-100" type="button" id="btnManualModeOut">⚙️ Thủ công ra</button>
+                                <button class="btn btn-secondary w-100" type="button" id="btnManualModeOut">⚙️ Đóng công ra</button>
                             </div>
                         </div>
                     </form>
@@ -99,6 +99,73 @@
 
 {% block javascripts %}
 <script>
+
+    const request = function(type, succ, err){
+        $.ajax({
+            url    : "http://" + window.location.host + "/api/gate/action/",
+            crossDomain:true,
+            type   : "POST",
+            contentType: "application/json",
+            timeout: 10000,
+            data   : JSON.stringify({
+                type: type, 
+            }),
+            success: (d)=>{
+                succ();
+            },
+            error  : (e)=>{
+                err();
+            },
+        })
+    }
+
+    window.onload = function() {
+        $("#btnOpenGateIn").on("click", function(){
+            request(
+                1,
+                function(){
+                    alert("Mở cổng vào");
+                },
+                function(){
+                    alert("Lỗi!");
+                }
+            );
+        });
+        $("#btnManualModeIn").on("click", function(){
+            request(
+                -1,
+                function(){
+                    alert("Đóng cổng vào");
+                },
+                function(){
+                    alert("Lỗi!");
+                }
+            );
+        });
+        $("#btnOpenGateOut").on("click", function(){
+            request(
+                2,
+                function(){
+                    alert("Mở cổng ra");
+                },
+                function(){
+                    alert("Lỗi!");
+                }
+            );
+        });
+        $("#btnManualModeOut").on("click", function(){
+            request(
+                -2,
+                function(){
+                    alert("Đóng cổng ra");
+                },
+                function(){
+                    alert("Lỗi!");
+                }
+            );
+        });
+    }
+
     const ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
     const socket = new WebSocket(`${ws_scheme}://${window.location.host}/ws/access-events/`);
 
@@ -181,4 +248,5 @@
         }
     };
 </script>
+<script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
 {% endblock javascripts %}

@@ -7,11 +7,85 @@
 <main class="content">
     {% include 'includes/navigation.html' %}
 
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-4">
-        <div class="d-block mb-4 mb-md-0">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-0">
+        <div class="d-block mb-0 mb-md-0">
             <h2 class="h4">Lịch sử ra vào</h2>
         </div>
     </div>
+
+    <form method="get" class="d-block w-100" style="gap:10px">
+        <input type="text" placeholder="Tìm kiếm" class="btn-sm mb-3" id="search_history " name="q" value="{{ request.GET.q }}">
+        <div class="d-flex w-100 justify-content-start flex-wrap flex-md-nowrap align-items-center pb-3" style="gap:10px">
+            Loại khách
+            <select class="btn-sm" name="type">
+                {% if request.GET.type == "0" or request.GET.type == None %}
+                    <option value="0" selected>Tất cả</option>x
+                    <option value="1">Khách vãng lai</option>
+                    <option value="2">Khách có tài khoản</option>
+                {% endif %}
+                {% if request.GET.type == "1" %}
+                    <option value="0">Tất cả</option>x
+                    <option value="1" selected>Khách vãng lai</option>
+                    <option value="2">Khách có tài khoản</option>
+                {% endif %}
+                {% if request.GET.type == "2" %}
+                    <option value="0">Tất cả</option>x
+                    <option value="1">Khách vãng lai</option>
+                    <option value="2" selected>Khách có tài khoản</option>
+                {% endif %}
+            </select>
+            Tìm kiếm theo
+            <select class="btn-sm" name="timestamp">
+                {% if request.GET.timestamp == "0" or request.GET.timestamp == None %}
+                    <option value="0" selected>Tất cả</option>
+                    <option value="4">Thời gian</option>
+                    <option value="1">Ngày</option>
+                    <option value="2">Tháng</option>
+                    <option value="3">Năm</option>
+                {% endif %}
+                {% if request.GET.timestamp == "1" %}
+                    <option value="0">Tất cả</option>
+                    <option value="1" selected>Ngày</option>
+                    <option value="2">Tháng</option>
+                    <option value="3">Năm</option>
+                    <option value="4">Thời gian</option>
+                {% endif %}
+                {% if request.GET.timestamp == "2" %}
+                    <option value="0">Tất cả</option>
+                    <option value="1">Ngày</option>
+                    <option value="2" selected>Tháng</option>
+                    <option value="3">Năm</option>
+                    <option value="4">Thời gian</option>
+                {% endif %}
+                {% if request.GET.timestamp == "3" %}
+                    <option value="0">Tất cả</option>
+                    <option value="1">Ngày</option>
+                    <option value="2">Tháng</option>
+                    <option value="3" selected>Năm</option>
+                    <option value="4">Thời gian</option>
+                {% endif %}
+                {% if request.GET.timestamp == "4" %}
+                    <option value="0">Tất cả</option>
+                    <option value="1">Ngày</option>
+                    <option value="2">Tháng</option>
+                    <option value="3" >Năm</option>
+                    <option value="4" selected>Thời gian</option>
+                {% endif %}
+            </select>
+        </div>
+        {% if request.GET.timestamp != "0" %}
+        <div class="d-flex w-100 justify-content-start flex-wrap flex-md-nowrap align-items-center pb-3" style="gap:10px">
+            Từ
+            <input type="datetime-local" class="btn-sm" name="from" value="{{ request.GET.from }}">
+            đến
+            <input type="datetime-local" class="btn-sm" name="to" value="{{ request.GET.to }}">
+        </div>
+        {% endif %}
+        <div class="d-flex w-100 justify-content-start flex-wrap flex-md-nowrap align-items-center pb-3" style="gap:10px">
+            <button type="submit" class="btn btn-sm btn-outline-primary">Lọc</button>
+            <button type="button" onclick="window.location.href='/lich-su-ra-vao/'" class="btn btn-sm btn-outline-primary">Hủy</button>
+        </div>
+    </form>
 
     <div class="card card-body border-light shadow-sm table-wrapper table-responsive pt-0">
         <div class="table-responsive">
